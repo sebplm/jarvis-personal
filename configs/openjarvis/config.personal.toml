@@ -1,0 +1,143 @@
+# Jarvis Personnel — Sébastien
+# Claude Sonnet 4.6 + Google Calendar multi-comptes + Gmail + Slack + WhatsApp + iMessage
+#
+# Installation :
+#   cp configs/openjarvis/config.personal.toml ~/.openjarvis/config.toml
+#   cp .env.example .env  # puis remplir les clés API
+#   source .env
+#   uv run jarvis ask "Bonjour Jarvis !"
+
+# ═══════════════════════════════════════════════════════════════
+# MOTEUR IA — Claude Sonnet 4.6 via Anthropic
+# ═══════════════════════════════════════════════════════════════
+[engine]
+default = "cloud"
+
+[intelligence]
+default_model    = "claude-sonnet-4-6"   # Meilleur rapport qualité/vitesse/coût
+provider         = "anthropic"
+temperature      = 0.7
+max_tokens       = 4096
+top_p            = 0.9
+
+# ═══════════════════════════════════════════════════════════════
+# AGENT
+# ═══════════════════════════════════════════════════════════════
+[agent]
+default_agent   = "orchestrator"
+max_turns       = 12
+persona         = "jarvis"
+honorific       = "Sébastien"
+language        = "fr"
+timezone        = "Europe/Paris"
+
+tools = [
+  "calendar_get_events_today",
+  "calendar_search_events",
+  "calendar_next_meeting",
+  "gmail_search",
+  "gmail_unread_summary",
+  "slack_get_messages",
+  "slack_send_message",
+  "imessage_search",
+  "web_search",
+  "think",
+  "knowledge_search",
+]
+
+# ═══════════════════════════════════════════════════════════════
+# STOCKAGE / MÉMOIRE
+# ═══════════════════════════════════════════════════════════════
+[tools.storage]
+default_backend = "sqlite"
+db_path         = "~/.openjarvis/memory.db"
+
+[tools.mcp]
+enabled = true
+
+# ═══════════════════════════════════════════════════════════════
+# DIGEST MATINAL — tous les matins à 8h (heure de Paris)
+# ═══════════════════════════════════════════════════════════════
+[digest]
+enabled   = true
+schedule  = "0 8 * * *"
+timezone  = "Europe/Paris"
+persona   = "jarvis"
+honorific = "Sébastien"
+sections  = ["calendar", "messages", "world"]
+
+[digest.calendar]
+sources = ["gcalendar_multi"]      # Multi-comptes (voir connecteur dédié)
+
+[digest.messages]
+sources = ["gmail_multi", "slack", "imessage"]
+# Ajouter "whatsapp" quand l'intégration WhatsApp Business est configurée
+
+[digest.world]
+sources = ["hackernews", "news_rss"]
+
+# ═══════════════════════════════════════════════════════════════
+# GOOGLE CALENDAR — multi-comptes
+# ═══════════════════════════════════════════════════════════════
+[connectors.gcalendar_multi]
+enabled  = true
+accounts = [
+  { label = "perso",     credentials = "~/.openjarvis/connectors/gcalendar_perso.json"     },
+  { label = "mentorshow", credentials = "~/.openjarvis/connectors/gcalendar_mentorshow.json" },
+  # Ajouter d'autres comptes ici :
+  # { label = "pro",      credentials = "~/.openjarvis/connectors/gcalendar_pro.json"      },
+]
+sync_days_ahead = 14               # Nombre de jours à synchroniser
+
+# ═══════════════════════════════════════════════════════════════
+# GMAIL — multi-comptes
+# ═══════════════════════════════════════════════════════════════
+[connectors.gmail_multi]
+enabled  = true
+accounts = [
+  { label = "perso",      credentials = "~/.openjarvis/connectors/gmail_perso.json"      },
+  { label = "mentorshow", credentials = "~/.openjarvis/connectors/gmail_mentorshow.json" },
+]
+
+# ═══════════════════════════════════════════════════════════════
+# SLACK
+# ═══════════════════════════════════════════════════════════════
+[connectors.slack]
+enabled     = true
+credentials = "~/.openjarvis/connectors/slack.json"
+# Canaux à surveiller (laisser vide pour tous)
+watch_channels = []
+
+# ═══════════════════════════════════════════════════════════════
+# WHATSAPP
+# ═══════════════════════════════════════════════════════════════
+[connectors.whatsapp]
+enabled     = true
+credentials = "~/.openjarvis/connectors/whatsapp.json"
+
+# ═══════════════════════════════════════════════════════════════
+# iMESSAGE / SMS (Mac uniquement — lit la base Messages.app)
+# ═══════════════════════════════════════════════════════════════
+[connectors.imessage]
+enabled  = true
+db_path  = "~/Library/Messages/chat.db"   # Chemin par défaut sur macOS
+max_days = 7                              # Nombre de jours d'historique
+
+# ═══════════════════════════════════════════════════════════════
+# SERVEUR API
+# ═══════════════════════════════════════════════════════════════
+[server]
+host  = "127.0.0.1"
+port  = 8000
+agent = "orchestrator"
+
+# ═══════════════════════════════════════════════════════════════
+# TÉLÉMÉTRIE / TRACES
+# ═══════════════════════════════════════════════════════════════
+[telemetry]
+enabled  = true
+db_path  = "~/.openjarvis/telemetry.db"
+
+[traces]
+enabled = true
+db_path = "~/.openjarvis/traces.db"
